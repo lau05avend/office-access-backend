@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: office-access-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: VISIT_REGISTRY_DB
+      MYSQL_USER: pythonUser
+      MYSQL_PASSWORD: python1234
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - office-network
+
+  backend:
+    build: ./backend
+    container_name: office-access-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      DB_HOST: office-access-mysql
+      DB_USER: pythonUser
+      DB_PASSWORD: python1234
+      DB_NAME: VISIT_REGISTRY_DB
+      PORT: 5000
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - office-network
+
+  frontend:
+    image: nginx:alpine
+    container_name: visitante-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - office-network
+
+volumes:
+  mysql_data:
+
+networks:
+  office-network:
+    driver: bridge

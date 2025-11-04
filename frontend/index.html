@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registro de Visitantes</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <form id="visitanteForm" class="form">
+        <h1>Registro de Visitante</h1>
+
+        <div class="input-box">
+          <input type="text" id="numero_identificacion" required />
+          <label>Número de Identificación</label>
+        </div>
+
+        <div class="input-box">
+          <select id="tipo_identificacion" required>
+            <option value="">Seleccione tipo...</option>
+            <option value="CC">Cédula de Ciudadanía</option>
+            <option value="CE">Cédula de Extranjería</option>
+            <option value="Pasaporte">Pasaporte</option>
+            <option value="NIT">NIT</option>
+          </select>
+          <label>Tipo de Identificación</label>
+        </div>
+
+        <div class="row">
+          <div class="input-box">
+            <input type="text" id="nombres" required />
+            <label>Nombres</label>
+          </div>
+          <div class="input-box">
+            <input type="text" id="apellidos" required />
+            <label>Apellidos</label>
+          </div>
+        </div>
+
+        <div class="input-box">
+          <select id="tipo_visitante" required>
+            <option value="">Seleccione tipo...</option>
+            <option value="1">Empresarial</option>
+            <option value="2">Personal</option>
+          </select>
+          <label>Tipo de Visitante</label>
+        </div>
+
+        <div class="input-box hidden" id="empresa_field">
+          <input type="text" id="empresa_representa" />
+          <label>Empresa que Representa</label>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn">
+          <span class="btn-text">Registrar</span>
+          <span class="spinner hidden"></span>
+        </button>
+      </form>
+
+      <div id="toast" class="toast"></div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

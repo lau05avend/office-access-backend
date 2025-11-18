@@ -1,8 +1,9 @@
 pipeline {
-    agent any
-
-    environment {
-        DOCKER_HOST = 'unix:///var/run/docker.sock'
+    agent {
+        docker {
+            image 'docker:28-cli'  // Imagen oficial con docker-cli + docker-compose
+            args '-v /var/run/docker.sock:/var/run/docker.sock --user root'
+        }
     }
 
     stages {

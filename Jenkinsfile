@@ -6,26 +6,15 @@ pipeline {
     }
 
     stages {
-
-        stage('Instalar dependencias backend') {
+        stage('Construir contenedores') {
             steps {
-                dir('backend') {
-                    sh 'pip install -r requirements.txt'
-                }
+                sh 'docker compose build'
             }
         }
 
         stage('Ejecutar pruebas unitarias') {
             steps {
-                dir('backend') {
-                    sh 'pytest -v --cov=app --cov-report=term-missing'
-                }
-            }
-        }
-
-        stage('Construir contenedores') {
-            steps {
-                sh 'docker compose build'
+                sh 'docker compose run --rm backend pytest -v --cov=app --cov-report=term-missing'
             }
         }
 

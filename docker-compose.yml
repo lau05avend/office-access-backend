@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   mysql:
     image: mysql:8.0
@@ -52,8 +50,25 @@ services:
     networks:
       - office-network
 
+  jenkins:
+    image: jenkins/jenkins:lts
+    user: root
+    container_name: office-access-jenkins
+    restart: always
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    networks:
+      - office-network
+
 volumes:
   mysql_data:
+  jenkins_home:
 
 networks:
   office-network:

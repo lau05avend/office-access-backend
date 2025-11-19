@@ -51,7 +51,7 @@ services:
       - office-network
 
   jenkins:
-    image: jenkins/jenkins:lts
+    build: ./jenkins
     user: root
     container_name: office-access-jenkins
     restart: always

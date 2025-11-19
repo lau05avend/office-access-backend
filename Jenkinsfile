@@ -11,25 +11,25 @@ pipeline {
                 sh '''
                     docker version
                     docker info
-                    docker compose version
+                    docker-compose version
                 '''
             }
         }
         stage('Construir contenedores') {
             steps {
-                sh 'docker compose build'
+                sh 'docker-compose build'
             }
         }
 
         stage('Ejecutar pruebas unitarias') {
             steps {
-                sh 'docker compose run --rm backend pytest -v --cov=app --cov-report=term-missing'
+                sh 'docker-compose run --rm backend pytest -v --cov=app --cov-report=term-missing'
             }
         }
 
         stage('Desplegar') {
             steps {
-                sh 'docker compose up -d'
+                sh 'docker-compose up -d'
             }
         }
     }

@@ -7,7 +7,8 @@ pipeline {
     }
 
     stages {
-        stage('Verificar dependencías') {
+
+        stage('Verificar dependencias') {
             steps {
                 sh '''
                     docker version
@@ -15,6 +16,7 @@ pipeline {
                 '''
             }
         }
+
         stage('Construir contenedores') {
             steps {
                 sh 'docker-compose build'
@@ -31,30 +33,35 @@ pipeline {
             }
         }
 
-        stage('Desplegar') {
-            steps {
-                sh 'docker-compose up -d'
-            }
-        }
-
         stage('Subir Coverage a Codecov') {
+            when {
+                expression { currentBuild.currentResult == 'SUCCESS' }
+            }
             steps {
                 sh '''
-                    # Descargar Codecov CLI
                     curl -Os https://cli.codecov.io/latest/linux/codecov
                     chmod +x codecov
 
-                    # Subir el coverage.xml
                     ./codecov upload-process \
-                        -t "$CODECOV_TOKEN" \
-                        -f coverage.xml
+                        -f backend/coverage.xml \
+                        -t "$CODECOV_TOKEN"
                 '''
+            }
+        }
+
+        stage('Desplegar') {
+            when {
+                expression { currentBuild.currentResult == 'SUCCESS' }
+            }
+            steps {
+                sh 'docker-compose up -d'
             }
         }
     }
 
     post {
         always {
+            sh 'docker-compose down --volumes --remove-orphans || true'
             echo 'Pipeline terminado'
         }
     }

@@ -7,7 +7,6 @@ pipeline {
     }
 
     stages {
-
         stage('Verificar dependencias') {
             steps {
                 sh '''
@@ -39,9 +38,22 @@ pipeline {
             }
             steps {
                 sh '''
+                    # mostrar info útil para debugging
+                    echo "=== workspace ==="
+                    pwd
+                    ls -la
+                    echo "=== backend dir ==="
+                    ls -la backend || true
+                    echo "=== coverage.xml preview ==="
+                    sed -n '1,120p' backend/coverage.xml || true
+                    echo "=== coverage.xml size ==="
+                    wc -c backend/coverage.xml || true
+
+                    # Descargar Codecov CLI
                     curl -Os https://cli.codecov.io/latest/linux/codecov
                     chmod +x codecov
 
+                    # Subir el coverage.xml
                     ./codecov upload-process \
                         -f backend/coverage.xml \
                         -t "$CODECOV_TOKEN"

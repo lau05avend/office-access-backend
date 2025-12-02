@@ -26,8 +26,14 @@ pipeline {
             steps {
                 sh '''
                     docker-compose run --rm backend \
-                    pytest -v --cov=app --cov-branch \
-                    --cov-report=xml --cov-report=term-missing
+                    bash -c "cd /app && pytest -v --cov=. --cov-branch \
+                    --cov-report=xml:/app/coverage.xml --cov-report=term-missing"
+                '''
+                // Copiar el coverage.xml del contenedor al workspace
+                sh '''
+                    docker cp $(docker-compose ps -q backend):/app/coverage.xml ./coverage.xml || \
+                    docker run --rm -v $(pwd):/workspace office-access-setup-backend \
+                    cp /app/coverage.xml /workspace/coverage.xml
                 '''
             }
         }
@@ -38,25 +44,20 @@ pipeline {
             }
             steps {
                 sh '''
-                    # mostrar info útil para debugging
-                    echo "=== workspace ==="
-                    pwd
-                    ls -la
-                    echo "=== backend dir ==="
-                    ls -la backend || true
-                    echo "=== coverage.xml preview ==="
-                    sed -n '1,120p' backend/coverage.xml || true
-                    echo "=== coverage.xml size ==="
-                    wc -c backend/coverage.xml || true
-
+                    echo "=== Verificando coverage.xml ==="
+                    ls -la coverage.xml
+                    cat coverage.xml | head -n 20
+                    
                     # Descargar Codecov CLI
                     curl -Os https://cli.codecov.io/latest/linux/codecov
                     chmod +x codecov
-
-                    # Subir el coverage.xml
+                    
+                    # Subir con información adicional
                     ./codecov upload-process \
-                        -f backend/coverage.xml \
-                        -t "$CODECOV_TOKEN"
+                        -f coverage.xml \
+                        -t "$CODECOV_TOKEN" \
+                        --plugin pycoverage \
+                        --dir backend
                 '''
             }
         }

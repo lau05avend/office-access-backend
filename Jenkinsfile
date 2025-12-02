@@ -25,9 +25,10 @@ pipeline {
         stage('Ejecutar pruebas unitarias') {
             steps {
                 sh '''
-                    docker-compose run --rm backend \
-                    bash -c "cd /app && pytest -v --cov=. --cov-branch \
-                    --cov-report=xml:/app/coverage.xml --cov-report=term-missing"
+                    docker-compose run --rm \
+                    -v $(pwd):/workspace \
+                    backend bash -c "cd /app && pytest -v --cov=. --cov-branch \
+                    --cov-report=xml:/workspace/coverage.xml --cov-report=term-missing"
                 '''
                 // Copiar el coverage.xml del contenedor al workspace
                 sh '''
@@ -46,18 +47,18 @@ pipeline {
                 sh '''
                     echo "=== Verificando coverage.xml ==="
                     ls -la coverage.xml
-                    cat coverage.xml | head -n 20
-                    
-                    # Descargar Codecov CLI
-                    curl -Os https://cli.codecov.io/latest/linux/codecov
-                    chmod +x codecov
-                    
-                    # Subir con información adicional
+                    head -n 20 coverage.xml
+
+                    # Descargar Codecov CLI si no existe
+                    if [ ! -f codecov ]; then
+                        curl -Os https://cli.codecov.io/latest/linux/codecov
+                        chmod +x codecov
+                    fi
+
+                    # Subir coverage
                     ./codecov upload-process \
                         -f coverage.xml \
-                        -t "$CODECOV_TOKEN" \
-                        --plugin pycoverage \
-                        --dir backend
+                        -t "$CODECOV_TOKEN"
                 '''
             }
         }

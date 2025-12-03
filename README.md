@@ -2,30 +2,50 @@
 # 🐳 Office Access – Sistema de Registro de Visitantes
 
 Aplicación completa (Frontend + Backend + Base de Datos) para registrar visitantes empresariales y personales.  
-Desarrollada con **Flask + MySQL + Nginx**, totalmente containerizada con **Docker Compose**.
+Desarrollada con **Flask + MySQL + Nginx**, y automatizada mediante **Docker Compose** y pipelines locales con **Jenkins**.
 
 ---
 
-## 📦 Estructura del Proyecto
+## 🗂️ Arquitectura del Proyecto
+
+- **Frontend (Nginx + HTML/CSS/JS)**: formulario responsive que envía registros vía `fetch` a la API.
+- **Backend (Flask + SQLAlchemy)**: expone `/api/visitantes`, valida campos críticos y persiste el modelo `Visitante` (@backend/models.py).
+- **Base de datos (MySQL 8)**: almacén relacional con inicialización automática; usa credenciales provistas en `.env` o `docker-compose`.
+- **Pipelines locales (Jenkins + ngrok)**: orquestan builds/tests y exponen webhooks vía túneles seguros.
+
+---
+
+## 📦 Estructura del Repositorio
 
 ```
-project/
+office-access-backend/
 ├── backend/
 │   ├── app.py               # Aplicación Flask principal
 │   ├── db.py                # Configuración de conexión a MySQL
 │   ├── models.py            # Modelos SQLAlchemy
 │   ├── routes/
 │   │   └── visitantes.py    # Rutas del API REST
-│   ├── Dockerfile           # Imagen Docker del backend
+├───├── tests/
+│   ├── conftest.py          # Fixtures para pruebas
+│   │   └── unit/routes/...  # Pruebas unitarias
+│   ├── pytest.ini           # Configuración de Pytest
 │   ├── requirements.txt     # Dependencias Python
+│   ├── Dockerfile           # Imagen Docker del backend
+│   ├── coverage.xml         # Reporte de coverage de pruebas
+│   ├── .coveragerc          # Configuración de coverage de pruebas
 │   └── .env.example         # Variables de entorno de ejemplo
 │
 ├── frontend/
 │   ├── index.html           # Formulario de registro
 │   ├── app.js               # Lógica de envío y validación
 │   ├── style.css            # Estilos visuales
-│
+│   
+├── jenkins/
+│   └── docker-compose.jenkins.yml # Orquestador de pipelines locales
+│   └── Dockerfile           # Imagen Docker del Jenkins
+├
 └── docker-compose.yml       # Orquestador de servicios
+└── Jenkinsfile              # Pipeline de Jenkins
 ```
 
 ---
@@ -40,111 +60,79 @@ project/
 | Base de datos | MySQL 8.0 |
 | Frontend | HTML, CSS, JS, Nginx |
 | Containerización | Docker + Docker Compose |
-| CORS | flask-cors |
-| Autenticación MySQL | cryptography |
+| Testing | Pytest |
+| CI/CD local | Jenkins + ngrok |
 
 ---
 
 ## ⚙️ Requisitos Previos
 
-- **Docker** 20.10+  
-- **Docker Compose** 2.0+  
-- Al menos **2GB RAM** y **5GB de espacio libre**
+- **Docker** 20.10+ y **Docker Compose** 2.0+
+- **Python 3.10** si vas a ejecutar el backend sin contenedores
+- Al menos **2GB RAM** y **5GB** libres
 
 ---
 
-## 🚀 Despliegue Rápido
+## 🚀 Puesta en Marcha Rápida
 
-### 1️⃣ Clonar el repositorio
-
+1. **Clonar repositorio**
 ```bash
 git clone <repository-url>
-cd project
+cd office-access-backend
 ```
-
-### 2️⃣ (Opcional) Dar permisos a Docker
-
+2. **Configurar variables (solo entorno local)**
+```bash
+cp backend/.env.example backend/.env
+# Ajusta credenciales según tu entorno
+```
+3. **(Opcional) Dar permisos al socket Docker**
 ```bash
 sudo chmod 666 /var/run/docker.sock
 ```
-
-### 3️⃣ Construir e iniciar todos los servicios
-
+4. **Construir e iniciar el stack completo**
 ```bash
 docker compose up -d --build
 ```
-
-### 4️⃣ Verificar estado
-
+5. **Verificar contenedores**
 ```bash
 docker ps
 ```
-
-Debes ver algo como:
-
-```
-visitante-frontend     0.0.0.0:8080->80/tcp
-office-access-backend  0.0.0.0:5000->5000/tcp
-office-access-mysql    0.0.0.0:3307->3306/tcp
-```
+Deberías ver `visitante-frontend`, `office-access-backend` y `office-access-mysql` activos.
 
 ---
 
-## 🌐 Acceso a la Aplicación
+## 🌐 Accesos Rápidos
 
 | Servicio | URL | Descripción |
 |-----------|-----|-------------|
 | **Frontend** | [http://localhost:8080](http://localhost:8080) | Formulario web para registrar visitantes |
-| **Backend API** | [http://localhost:5000/api/visitantes](http://localhost:5000/api/visitantes) | Endpoint principal REST |
-| **MySQL** | `localhost:3307` | Base de datos (usuario: `pythonUser`, pass: `python1234`) |
+| **Backend API** | [http://localhost:5000/api/visitantes](http://localhost:5000/api/visitantes) | Endpoint REST documentado en `routes/visitantes.py` |
+| **MySQL** | `localhost:3307` | Base de datos (`pythonUser` / `python1234`) |
+| **Jenkins (local)** | [http://localhost:8081](http://localhost:8081) | Panel de pipelines locales |
 
 ---
 
-## 🧩 Servicios del `docker-compose.yml`
+## 🧩 Servicios orquestados (`docker-compose.yml`)
 
 ### 🐍 Backend (Flask)
+- Imagen base `python:3.10-slim` + `backend/Dockerfile`.
+- Variables inyectadas: `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `PORT`.
+- Inicializa la base al levantar la app (ver `create_app` en @backend/app.py).
 
-- Imagen: `python:3.10-slim`
-- Puerto: `5000`
-- Variables:
-  ```yaml
-  DB_HOST: office-access-mysql
-  DB_USER: pythonUser
-  DB_PASSWORD: python1234
-  DB_NAME: VISIT_REGISTRY_DB
-  PORT: 5000
-  ```
-- Conectado a la red `office-network`
-- Reinicio automático: `always`
-
----
-
-### 🐬 MySQL
-
-- Imagen: `mysql:8.0`
-- Puerto externo: `3307`
-- Base de datos inicial: `VISIT_REGISTRY_DB`
-- Usuario: `pythonUser`
-- Password: `python1234`
-- Persistencia: volumen `mysql_data`
-- Healthcheck: 10 intentos cada 20s
-
----
+### 🐬 MySQL 8.0
+- Expone `3307:3306` para evitar conflictos locales.
+- Volumen `mysql_data` para persistencia.
+- Healthcheck que asegura disponibilidad antes de levantar Flask.
 
 ### 🖥️ Frontend (Nginx)
-
-- Imagen: `nginx:alpine`
-- Puerto: `8080`
-- Monta el contenido de `frontend/` en `/usr/share/nginx/html`
-- Accede al backend por `http://localhost:5000/api/visitantes`
-- Reinicio automático: `unless-stopped`
+- Imagen `nginx:alpine` sirviendo `frontend/` en modo read-only.
+- Consume la API `http://backend:5000/api/visitantes` mediante configuración del JS.
 
 ---
 
 ## 🧠 Variables de Entorno
 
-### `.env` (para desarrollo local)
-
+### Desarrollo local (`backend/.env`)
 ```env
 DB_HOST=localhost
 DB_USER=pythonUser
@@ -153,8 +141,7 @@ DB_NAME=VISIT_REGISTRY_DB
 PORT=5000
 ```
 
-### `docker-compose.yml` (para Docker)
-
+### Contenedores (definidas en `docker-compose.yml`)
 ```yaml
 MYSQL_ROOT_PASSWORD: rootpassword
 MYSQL_DATABASE: VISIT_REGISTRY_DB
@@ -162,14 +149,18 @@ MYSQL_USER: pythonUser
 MYSQL_PASSWORD: python1234
 ```
 
+> Nota: Para Docker no es necesario crear `.env`, ya que Compose pasa las variables automáticamente.
+
 ---
 
-## 📋 Endpoints Principales
+## 📋 API Principal
 
 ### POST `/api/visitantes`
+- Valida campos obligatorios (`numero_identificacion`, `tipo_identificacion`, `nombres`, `apellidos`, `tipo_visitante`).
+- Verifica que `tipo_visitante` ∈ {`Empresarial`, `Personal`} y que `empresa_representa` exista cuando corresponde.
+- Evita duplicados consultando por `numero_identificacion` (@backend/routes/visitantes.py#39-46).
 
-#### Request Body
-
+#### Request de ejemplo
 ```json
 {
   "numero_identificacion": "1234567890",
@@ -182,8 +173,7 @@ MYSQL_PASSWORD: python1234
 ```
 
 #### Respuestas
-
-**✅ Éxito (201 Created)**
+✅ `201 Created`
 ```json
 {
   "message": "Visitante registrado exitosamente",
@@ -197,7 +187,7 @@ MYSQL_PASSWORD: python1234
 }
 ```
 
-**⚠️ Error (409 Conflict)**
+⚠️ `409 Conflict`
 ```json
 {
   "error": "Ya existe un visitante registrado con el número de identificación 1234567890",
@@ -206,55 +196,74 @@ MYSQL_PASSWORD: python1234
 }
 ```
 
+
+## � Testing automatizado
+
+- Las suites viven en `backend/tests/unit/routes/test_visitantes_routes.py` e incluyen casos de éxito, validaciones, duplicados y manejo de errores (IntegrityError + excepciones inesperadas).
+- Ejecutá las pruebas dentro del contenedor backend o localmente:
+```bash
+cd backend
+pytest --cov --cov-report term-missing
+```
+
 ---
 
 ## 🧾 Comandos Útiles
 
-### 🔹 Iniciar Servicios
-```bash
-docker compose up -d
-```
+| Acción | Comando |
+|--------|---------|
+| Iniciar stack | `docker compose up -d` |
+| Detener stack | `docker compose down` |
+| Reinicio total (eliminar datos) | `docker compose down -v` |
+| Reconstruir sin caché | `docker compose build --no-cache && docker compose up -d` |
+| Logs en vivo | `docker compose logs -f backend` (cambia `backend` por mysql/frontend) |
 
-### 🔹 Detener Servicios
-```bash
-docker compose down
-```
 
-### 🔹 Detener + eliminar datos (reinicio total)
-```bash
-docker compose down -v
-```
+## 🤖 CI/CD local con Jenkins + ngrok
 
-### 🔹 Reconstruir todo desde cero
+### � Levantar Jenkins en Docker
+1. Ajustar permisos al socket (solo la primera vez o tras reinicio):
 ```bash
-docker compose build --no-cache
-docker compose up -d
+sudo chmod 666 /var/run/docker.sock
 ```
-
-### 🔹 Ver logs
+2. Ingresar al directorio de Jenkins y levantar el stack dedicado:
 ```bash
-docker compose logs -f backend
-docker compose logs -f mysql
-docker compose logs -f frontend
+cd jenkins/
+docker compose -f docker-compose.jenkins.yml up -d
+```
+3. Acceder al panel en [http://localhost:8081](http://localhost:8081) o a través del túnel descrito abajo.
+
+### 🌍 Exponer Jenkins con ngrok
+```bash
+ngrok http 8081
+```
+Obtendrás una URL pública temporal para recibir webhooks de GitHub/GitLab o supervisar builds fuera de la red local.
+
+### 🧹 Apagar Jenkins y limpiar contenedores auxiliares
+```bash
+docker compose -f docker-compose.jenkins.yml down
+```
+Si necesitas limpiar por completo los contenedores del stack principal:
+```bash
+docker stop visitante-frontend office-access-backend office-access-mysql
+docker rm visitante-frontend office-access-backend office-access-mysql
 ```
 
 ---
 
-## 🔍 Verificación y Testing
+## 🔍 Verificación manual
 
-### 1️⃣ Revisar contenedores activos
+1. **Listar contenedores**
 ```bash
 docker ps
 ```
-
-### 2️⃣ Revisar logs del backend
+2. **Ver logs del backend**
 ```bash
 docker compose logs backend | grep "Base de datos inicializada"
 ```
-
-### 3️⃣ Probar API con `curl`
+3. **Probar la API**
 ```bash
-curl -X POST http://localhost:5000/api/visitantes   -H "Content-Type: application/json"   -d '{
+curl -X POST http://localhost:5000/api/visitantes -H "Content-Type: application/json" -d '{
     "numero_identificacion": "1234567890",
     "tipo_identificacion": "CC",
     "nombres": "Test",
@@ -267,17 +276,15 @@ curl -X POST http://localhost:5000/api/visitantes   -H "Content-Type: applicatio
 
 ## 🧼 Limpieza y Mantenimiento
 
-### Eliminar contenedores, imágenes y volúmenes
+- Eliminar contenedores, imágenes y volúmenes huérfanos:
 ```bash
 docker system prune -a --volumes
 ```
-
-### Backup de la base de datos
+- Backup de la base de datos:
 ```bash
 docker exec office-access-mysql mysqldump -u pythonUser -ppython1234 VISIT_REGISTRY_DB > backup.sql
 ```
-
-### Restaurar backup
+- Restaurar backup:
 ```bash
 docker exec -i office-access-mysql mysql -u pythonUser -ppython1234 VISIT_REGISTRY_DB < backup.sql
 ```
@@ -286,20 +293,20 @@ docker exec -i office-access-mysql mysql -u pythonUser -ppython1234 VISIT_REGIST
 
 ## 🧠 Tips Pro
 
-- Si MySQL tarda en iniciar, ejecutá:
+- Si MySQL tarda en levantar:
   ```bash
-  docker compose logs -f mysql
+  docker compose logs -f office-access-mysql
   ```
-- Si cambia tu código backend, solo reconstruí:
+- Para reflejar cambios solo en el backend:
   ```bash
   docker compose up -d --build backend
   ```
-- Para entrar al contenedor Flask:
+- Abrir una shell dentro del contenedor Flask:
   ```bash
   docker exec -it office-access-backend bash
   ```
 
 ---
 
-**Stack:** Flask · MySQL · Docker · Nginx  
+**Stack:** Flask · MySQL · Docker · Nginx · Jenkins  
 **Fecha:** 2025

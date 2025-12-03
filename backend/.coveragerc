@@ -1,0 +1,16 @@
+[run]
+relative_files = True
+source = .
+
+[paths]
+source =
+    .
+    /app
+
+[xml]
+output = coverage.xml
+
+[report]
+omit =
+    tests/*
+    */tests/*

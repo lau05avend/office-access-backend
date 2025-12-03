@@ -25,20 +25,24 @@ pipeline {
         stage('Ejecutar pruebas unitarias') {
             steps {
                 sh '''
-                docker-compose up -d backend
+                    # Limpiar archivos de coverage anteriores
+                    rm -f coverage.xml backend/coverage.xml
 
-                # Ejecutar pytest
-                docker-compose exec -T backend \
-                    pytest -v --cov=. --cov-branch \
-                    --cov-report=xml:coverage.xml \
-                    --cov-report=term-missing
+                    # Levantar backend
+                    docker-compose up -d backend
 
-                # Copiar el archivo generado
-                docker cp $(docker-compose ps -q backend):/app/coverage.xml ./coverage.xml
+                    # Ejecutar pytest
+                    docker-compose exec -T backend \
+                        pytest -v --cov=. --cov-branch \
+                        --cov-report=xml:coverage.xml \
+                        --cov-report=term-missing
 
-                # Detener el contenedor
-                docker-compose stop backend
-            '''
+                    # Copiar el archivo generado
+                    docker cp $(docker-compose ps -q backend):/app/coverage.xml ./coverage.xml
+
+                    # Detener el contenedor
+                    docker-compose stop backend
+                '''
             }
         }
 

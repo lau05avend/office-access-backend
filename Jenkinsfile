@@ -40,8 +40,8 @@ pipeline {
             steps {
                 sh '''
                     echo "=== Verificando coverage.xml ==="
-                    ls -la coverage.xml
-                    head -n 20 coverage.xml
+                    ls -la /workspace/coverage.xml
+                    head -n 20 /workspace/coverage.xml
 
                     # Descargar Codecov CLI si no existe
                     if [ ! -f codecov ]; then
@@ -51,7 +51,7 @@ pipeline {
 
                     # Subir coverage
                     ./codecov upload-process \
-                        -f coverage.xml \
+                        -f /workspace/coverage.xml \
                         -t "$CODECOV_TOKEN"
                 '''
             }

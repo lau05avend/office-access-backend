@@ -194,3 +194,4 @@ def test_registrar_visitante_unexpected_error(test_client, init_database, monkey
     assert response.status_code == 500
     assert data['status'] == 'error'
     assert 'Error en el servidor' in data['error']
+    

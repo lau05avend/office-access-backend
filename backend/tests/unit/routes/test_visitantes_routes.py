@@ -6,7 +6,9 @@ import os
 # Asegurar que podemos importar los módulos del proyecto
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from models import Visitante
+from sqlalchemy.exc import IntegrityError
+
+from models import Visitante, db
 
 def test_registrar_visitante_valido(test_client, init_database):
     """Test para registrar un visitante válido"""
@@ -130,3 +132,65 @@ def test_tipo_visitante_invalido(test_client, init_database):
     assert response.status_code == 400
     assert data['status'] == 'error'
     assert "El campo 'tipo_visitante' debe ser 'Empresarial' o 'Personal'" in data['error']
+
+
+def test_registrar_visitante_integrity_error(test_client, init_database, monkeypatch):
+    class DummyQuery:
+        def filter_by(self, **kwargs):
+            return self
+
+        def first(self):
+            return None
+
+    monkeypatch.setattr(Visitante, 'query', DummyQuery())
+
+    def raise_integrity():
+        raise IntegrityError('stmt', 'params', Exception('Duplicate entry'))
+
+    monkeypatch.setattr(db.session, 'commit', raise_integrity)
+
+    visitante = {
+        'numero_identificacion': '44556677',
+        'tipo_identificacion': 'DNI',
+        'nombres': 'Pedro',
+        'apellidos': 'Ramírez',
+        'tipo_visitante': 'Personal'
+    }
+
+    response = test_client.post(
+        '/api/visitantes',
+        data=json.dumps(visitante),
+        content_type='application/json'
+    )
+
+    data = json.loads(response.data)
+    assert response.status_code == 409
+    assert data['status'] == 'error'
+    assert 'identificación ya está registrado' in data['error']
+
+
+def test_registrar_visitante_unexpected_error(test_client, init_database, monkeypatch):
+    class FailingQuery:
+        def filter_by(self, **kwargs):
+            raise RuntimeError('db down')
+
+    monkeypatch.setattr(Visitante, 'query', FailingQuery())
+
+    visitante = {
+        'numero_identificacion': '99887766',
+        'tipo_identificacion': 'DNI',
+        'nombres': 'Lucía',
+        'apellidos': 'Soto',
+        'tipo_visitante': 'Personal'
+    }
+
+    response = test_client.post(
+        '/api/visitantes',
+        data=json.dumps(visitante),
+        content_type='application/json'
+    )
+
+    data = json.loads(response.data)
+    assert response.status_code == 500
+    assert data['status'] == 'error'
+    assert 'Error en el servidor' in data['error']

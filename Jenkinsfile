@@ -37,7 +37,7 @@ pipeline {
                         --cov-report=xml:coverage.xml \
                         --cov-report=term-missing
 
-                    # Copiar el archivo generado
+                    # Copiar coverage.xml del contenedor al workspace
                     docker cp $(docker-compose ps -q backend):/app/coverage.xml ./coverage.xml
 
                     # Detener el contenedor
@@ -52,12 +52,6 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "=== Verificando coverage.xml ==="
-                    pwd
-                    ls -la
-                    ls -la coverage.xml
-                    head -n 20 coverage.xml
-
                     # Descargar Codecov CLI si no existe
                     if [ ! -f codecov ]; then
                         curl -Os https://cli.codecov.io/latest/linux/codecov
@@ -85,7 +79,7 @@ pipeline {
     post {
         always {
             sh 'docker-compose down --volumes --remove-orphans || true'
-            echo 'Pipeline terminado'
+            echo 'Pipeline terminado exitosamente'
         }
     }
 }

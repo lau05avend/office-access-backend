@@ -51,7 +51,6 @@ pipeline {
                     echo "=== Verificando coverage.xml ==="
                     pwd
                     ls -la
-                    ls -la /backend
                     ls -la coverage.xml
                     head -n 20 coverage.xml
 

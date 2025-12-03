@@ -25,15 +25,20 @@ pipeline {
         stage('Ejecutar pruebas unitarias') {
             steps {
                 sh '''
-                    docker-compose run --rm \
-                        -v "$(pwd)/backend:/app" \
-                        backend bash -c "pytest -v --cov=. --cov-branch \
-                        --cov-report=xml:coverage.xml \
-                        --cov-report=term-missing"
+                docker-compose up -d backend
 
-                    # Copiar desde backend/ al workspace raíz
-                    cp backend/coverage.xml ./coverage.xml
-                '''
+                # Ejecutar pytest
+                docker-compose exec -T backend \
+                    pytest -v --cov=. --cov-branch \
+                    --cov-report=xml:coverage.xml \
+                    --cov-report=term-missing
+
+                # Copiar el archivo generado
+                docker cp $(docker-compose ps -q backend):/app/coverage.xml ./coverage.xml
+
+                # Detener el contenedor
+                docker-compose stop backend
+            '''
             }
         }
 

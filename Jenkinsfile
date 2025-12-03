@@ -26,10 +26,13 @@ pipeline {
             steps {
                 sh '''
                     docker-compose run --rm \
-                    -v "$(pwd):/workspace" \
-                    backend bash -c "pytest -v --cov=. --cov-branch \
-                    --cov-report=xml:/workspace/coverage.xml \
-                    --cov-report=term-missing"
+                        -v "$(pwd)/backend:/app" \
+                        backend bash -c "pytest -v --cov=. --cov-branch \
+                        --cov-report=xml:coverage.xml \
+                        --cov-report=term-missing"
+
+                    # Copiar desde backend/ al workspace raíz
+                    cp backend/coverage.xml ./coverage.xml
                 '''
             }
         }
@@ -43,6 +46,7 @@ pipeline {
                     echo "=== Verificando coverage.xml ==="
                     pwd
                     ls -la
+                    ls -la /backend
                     ls -la coverage.xml
                     head -n 20 coverage.xml
 

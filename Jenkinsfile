@@ -30,12 +30,6 @@ pipeline {
                     backend bash -c "cd /app && pytest -v --cov=. --cov-branch \
                     --cov-report=xml:/workspace/coverage.xml --cov-report=term-missing"
                 '''
-                // Copiar el coverage.xml del contenedor al workspace
-                sh '''
-                    docker cp $(docker-compose ps -q backend):/app/coverage.xml ./coverage.xml || \
-                    docker run --rm -v $(pwd):/workspace office-access-setup-backend \
-                    cp /app/coverage.xml /workspace/coverage.xml
-                '''
             }
         }
 

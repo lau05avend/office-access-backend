@@ -76,4 +76,10 @@ pipeline {
         }
     }
 
+    post {
+        always {
+            sh 'docker-compose down --volumes --remove-orphans || true'
+            echo 'Pipeline terminado exitosamente'
+        }
+    }
 }
